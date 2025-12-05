@@ -5,15 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Krishna Enterprises</title>
 
-    <!-- Favicon - your logo.png -->
     <link rel="icon" href="./logo.png" type="image/png">
-    <link rel="shortcut icon" href="./logo.png">
-    <link rel="apple-touch-icon" href="./logo.png">
-
     <link rel="stylesheet" href="./style.css">
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
-<body>
+<body class="no-scroll">
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <img src="./loading.gif" id="loading-gif">
+        <div id="loading-text">Loading document…</div>
+        <div id="loading-percent">0%</div>
+    </div>
 
     <div id="pdf-container"></div>
 
