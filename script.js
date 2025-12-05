@@ -1,48 +1,81 @@
-// We use the PDF.js library loaded in HTML
-const url = './LS.pdf';
+const url = "./LS.pdf";
 
-// Set the worker source (required for PDF.js)
-pdfjsLib.GlobalWorkerOptions.workerSrc = 
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
 
-const container = document.getElementById('pdf-container');
+const container = document.getElementById("pdf-container");
+const overlay = document.getElementById("loading-overlay");
+const percentText = document.getElementById("loading-percent");
 
-// Load the PDF
+let pdfDoc = null;
+let zoom = 1.5;
+
+let rendered = 0;
+let total = 0;
+let canvasList = [];
+
+// Load PDF
 pdfjsLib.getDocument(url).promise.then(pdf => {
-    console.log('PDF Loaded. Total pages: ' + pdf.numPages);
+    pdfDoc = pdf;
+    total = pdf.numPages;
 
-    // Loop through every page in the PDF
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-        renderPage(pdf, pageNum);
-    }
-
-}).catch(err => {
-    console.error('Error loading PDF:', err);
-    container.innerHTML = `<p style="text-align:center; padding:20px;">
-        Error loading document.<br>
-        Please check that <b>LS.pdf</b> is in the same folder.
-    </p>`;
+    renderAllPages();
 });
 
-// Function to render a single page
-function renderPage(pdf, pageNum) {
-    pdf.getPage(pageNum).then(page => {
-        const scale = 1.5;
-        const viewport = page.getViewport({ scale: scale });
+// Render all pages first (hidden)
+function renderAllPages() {
+    for (let i = 1; i <= total; i++) {
+        pdfDoc.getPage(i).then(page => {
+            const viewport = page.getViewport({ scale: zoom });
 
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d", { alpha: true });
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
 
-        container.appendChild(canvas);
+            page.render({ canvasContext: ctx, viewport }).promise.then(() => {
 
-        const renderContext = {
-            canvasContext: context,
-            viewport: viewport
-        };
-        
-        page.render(renderContext);
+                removeWhite(canvas);
+                canvasList.push(canvas);
+
+                rendered++;
+                updatePercent();
+
+                if (rendered === total) {
+                    showAllPages();
+                }
+            });
+        });
+    }
+}
+
+function updatePercent() {
+    const pct = Math.floor((rendered / total) * 100);
+    percentText.textContent = pct + "%";
+}
+
+// After all pages load
+function showAllPages() {
+    overlay.classList.add("hidden");
+    document.body.classList.remove("no-scroll");
+
+    canvasList.forEach(c => {
+        container.appendChild(c);
+        setTimeout(() => c.classList.add("visible"), 50);
     });
+}
+
+// Remove white background
+function removeWhite(canvas, threshold = 250) {
+    const ctx = canvas.getContext("2d");
+    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = img.data;
+
+    for (let i = 0; i < data.length; i += 4) {
+        if (data[i] >= threshold && data[i+1] >= threshold && data[i+2] >= threshold) {
+            data[i+3] = 0;
+        }
+    }
+
+    ctx.putImageData(img, 0, 0);
 }
